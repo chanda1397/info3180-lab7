@@ -6,7 +6,12 @@ This file creates your application.
 """
 
 from app import app
-from flask import render_template, request
+from flask import render_template, request, redirect, url_for, flash, jsonify
+from forms import UploadForm
+import os, json
+from werkzeug.datastructures import CombinedMultiDict
+
+from werkzeug.utils import secure_filename
 
 ###
 # Routing for your application.
@@ -63,6 +68,27 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+    
+@app.route('/api/upload', methods=['POST'])
+def upload():
+    error_list=[]
+    form = UploadForm()
+    if form.validate_on_submit():
+        desc = form.description.data
+        file = request.files['file']
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+        json_list = {}
+        json_list['message'] = "Upload Successful"
+        json_list['filename'] = file.filename
+        json_list['description'] = desc
+        return json.dumps(json_list)
+    else:
+        for i in form_errors(form):
+            error_list.append(i)
+        json_error_list = {}
+        json_error_list['errors'] = error_list
+        return json.dumps(json_error_list)
 
 
 if __name__ == '__main__':
